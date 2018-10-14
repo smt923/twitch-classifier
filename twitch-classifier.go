@@ -23,21 +23,27 @@ const (
 )
 
 var (
-	negatives     = []string{}
-	neutrals      = []string{}
-	positives     = []string{}
-	channelToJoin = "summit1g"
-	filePath      = channelToJoin + ".json"
-	ratings       = map[string]int{}
+	negatives = []string{}
+	neutrals  = []string{}
+	positives = []string{}
+	ratings   = map[string]int{}
 )
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintf(os.Stderr, "Error, program must be given exactly one argument, the channel to use\nExample: %s imaqtpie", os.Args[0])
+		os.Exit(1)
+	}
+
+	channelToJoin := os.Args[1]
+	filePath := channelToJoin + ".json"
+
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-signals
 		fmt.Printf("Cleaning up, saving and exiting...\n")
-		saveScores()
+		saveScores(filePath)
 		os.Exit(0)
 	}()
 
@@ -79,7 +85,7 @@ func main() {
 			message.Text,
 		)
 
-		saveScores()
+		saveScores(filePath)
 	})
 
 	client.Join(channelToJoin)
@@ -139,13 +145,13 @@ func trainClassifier(path string) *bayesian.Classifier {
 	return classifier
 }
 
-func saveScores() {
+func saveScores(savePath string) {
 	b, err := json.Marshal(ratings)
 	if err != nil {
 		log.Fatalf("Could not marshal scores to json\n%v\n", err)
 	}
-	err = ioutil.WriteFile(filePath, b, 0644)
+	err = ioutil.WriteFile(savePath, b, 0644)
 	if err != nil {
-		log.Fatalf("Could not write file '%s' to disk\n%v\n", filePath, err)
+		log.Fatalf("Could not write file '%s' to disk\n%v\n", savePath, err)
 	}
 }
